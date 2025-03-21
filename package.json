@@ -1,0 +1,19 @@
+{
+  "name": "bigeye",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "clipboardy": "^4.0.0",
+    "electron": "^35.0.3",
+    "electron-store": "10.0.1",
+    "sharp": "^0.33.5"
+  }
+}
