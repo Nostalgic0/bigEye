@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Seleccionar Área</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #selection-box {
+            position: absolute;
+            border: 2px dashed red;
+            background: rgba(255, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="selection-box"></div>
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let startX, startY, endX, endY;
+        const selectionBox = document.getElementById('selection-box');
+
+        document.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startY = e.clientY;
+            selectionBox.style.left = `${startX}px`;
+            selectionBox.style.top = `${startY}px`;
+            selectionBox.style.width = '0';
+            selectionBox.style.height = '0';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (startX !== undefined && startY !== undefined) {
+                endX = e.clientX;
+                endY = e.clientY;
+                selectionBox.style.width = `${endX - startX}px`;
+                selectionBox.style.height = `${endY - startY}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (startX !== undefined && startY !== undefined) {
+                const area = {
+                    x: Math.min(startX, endX),
+                    y: Math.min(startY, endY),
+                    width: Math.abs(endX - startX),
+                    height: Math.abs(endY - startY),
+                };
+                ipcRenderer.send('area-selected', area);
+            }
+        });
+    </script>
+</body>
+</html>
