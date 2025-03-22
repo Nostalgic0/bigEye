@@ -1,21 +1,27 @@
-import { ipcRenderer } from 'electron'
+document.addEventListener('DOMContentLoaded', () => {
+    const captureBtn = document.getElementById('capture-btn');
+    const chooseFolderBtn = document.getElementById('choose-folder-btn');
 
-const captureBtn = document.getElementById('capture');
-const saveBtn = document.getElementById('save');
-let capturedImage;
+    captureBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.requestScreenshot();
 
-captureBtn.addEventListener('click', () => {
-    console.log("Botón de captura clicado");
-    ipcRenderer.send('capture-screen');
-});
+        if (result.success) {
+            const img = document.getElementById('screenshot-img');
+            img.src = `file://${result.filePath}`;
+            img.style.display = 'block';
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    });
 
-ipcRenderer.on('capture-complete', (event, imageBuffer) => {
-    capturedImage = imageBuffer;
-});
+    chooseFolderBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.chooseFolder();
 
-saveBtn.addEventListener('click', () => {
-    console.log("Botón de guardar clicado");
-    if (capturedImage) {
-        ipcRenderer.send('save-image', capturedImage);
-    }
+        if (result.success) {
+            alert(`Carpeta seleccionada: ${result.folder}`);
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    });
+    
 });

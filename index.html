@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Capturador de Pantalla</title>
+    <meta charset="UTF-8">
+    <title>Captura de Pantalla</title>
+    <style>
+        #screenshot-img { display: none; }
+    </style>
 </head>
 <body>
-    <h1>Capturador de Pantalla</h1>
-    <button id="capture">Capturar Pantalla</button>
-    <button id="save">Guardar Imagen</button>
+    <button id="capture-btn">Capturar Pantalla</button>
+    <button id="choose-folder-btn">Elegir Carpeta</button>
+    <img id="screenshot-img">
     <script src="renderer.js"></script>
 </body>
 </html>

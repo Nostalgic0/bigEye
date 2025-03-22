@@ -1,19 +1,23 @@
 {
   "name": "bigeye",
   "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
+  "description": "Aplicación para capturar pantallas en Linux usando Electron",
+  "main": "main.js",  
   "scripts": {
+    "start": "electron .", 
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "electron",
+    "screenshot",
+    "linux"
+  ],
+  "author": "Tu Nombre",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "clipboardy": "^4.0.0",
-    "electron": "^35.0.3",
-    "electron-store": "10.0.1",
-    "sharp": "^0.33.5"
+    
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"  
   }
 }

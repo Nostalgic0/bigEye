@@ -1,58 +1,60 @@
-import {app, BrowserWindow, ipcMain, dialog, clipboard, nativeImage } from 'electron';
-import path from 'path'
-import sharp from 'sharp'
-import Store from 'electron-store'
-import fs from 'fs'
-import clipboardy from 'clipboardy'
-const store = new Store();
+const { app, BrowserWindow, ipcMain, desktopCapturer, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+// Crear la carpeta "screenshots"
+let screenshotsDir = path.join(__dirname, 'screenshots');
+if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
 
 function createWindow() {
-    const win = new BrowserWindow({
-        width: 800,
-        height: 600,
+    const mainWindow = new BrowserWindow({
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
         },
     });
 
-    win.loadFile('index.html');
+    mainWindow.loadFile('index.html');
 }
 
+// Escuchar la solicitud de captura desde el renderer
+ipcMain.handle('request-screenshot', async () => {
+    try {
+        // Capturar fuentes de pantalla (desde el main)
+        const sources = await desktopCapturer.getSources({
+            types: ['screen'],
+            thumbnailSize: { width: 1920, height: 1080 },
+        });
+
+        if (sources.length === 0) throw new Error("No se encontraron pantallas");
+
+        const screenshot = sources[0].thumbnail.toDataURL();
+        const buffer = Buffer.from(screenshot.split(',')[1], 'base64');
+
+        // Guardar la imagen
+        const timestamp = new Date().toISOString().replace(/[:.-]/g, '');
+        const filePath = path.join(screenshotsDir, `screenshot-${timestamp}.png`);
+        fs.writeFileSync(filePath, buffer);
+
+        return { success: true, filePath };
+
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('choose-folder', async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'], // Solo permite seleccionar carpetas
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        screenshotsDir = result.filePaths[0]; // Actualizar la carpeta de destino
+        return { success: true, folder: screenshotsDir };
+    } else {
+        return { success: false, error: "No se seleccionó ninguna carpeta" };
+    }
+});
+
 app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
-
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-    }
-});
-
-ipcMain.on('capture-screen', async (event) => {
-    console.log("Evento capture-screen recibido");
-    const primaryDisplay = require('electron').screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.workAreaSize;
-    const screenshot = await require('electron').desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: width, height: height } });
-    const image = nativeImage.createFromDataURL(screenshot[0].thumbnail.toDataURL());
-    const png = image.toPNG();
-    clipboard.writeImage(image);
-    event.sender.send('capture-complete', png);
-});
-
-ipcMain.on('save-image', async (event, imageBuffer) => {
-    console.log("Evento save-image recibido");
-    const filePath = await dialog.showSaveDialog({
-        filters: [{ name: 'Images', extensions: ['png'] }],
-    });
-    if (filePath.canceled) return;
-    fs.writeFile(filePath.filePath, imageBuffer, (err) => {
-        if (err) {
-            console.error('Error saving image:', err);
-        }
-    });
-});
