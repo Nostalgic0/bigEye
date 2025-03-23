@@ -1,42 +1,86 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const captureBtn = document.getElementById('capture-btn');
-    const chooseFolderBtn = document.getElementById('choose-folder-btn');
-    const selectAreaBtn = document.getElementById('select-area-btn');
+    const overlay = document.getElementById('overlay');
+    const selectionBox = document.getElementById('selection-box');
+    const actionButtons = document.getElementById('action-buttons');
+    const saveBtn = document.getElementById('save-btn');
+    const copyBtn = document.getElementById('copy-btn');
 
-    // Capturar pantalla
-    captureBtn.addEventListener('click', async () => {
-        const result = await window.electronAPI.requestScreenshot();
+    let startX, startY, endX, endY;
+    let isSelecting = false;
+
+    // Iniciar la selección de área
+    const startSelection = () => {
+        isSelecting = true;
+        selectionBox.style.display = 'block';
+        actionButtons.classList.add('hidden');
+    };
+
+    // Manejar la selección del área
+    document.addEventListener('mousedown', (e) => {
+        if (isSelecting) {
+            startX = e.clientX;
+            startY = e.clientY;
+            selectionBox.style.left = `${startX}px`;
+            selectionBox.style.top = `${startY}px`;
+            selectionBox.style.width = '0';
+            selectionBox.style.height = '0';
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isSelecting && startX !== undefined && startY !== undefined) {
+            endX = e.clientX;
+            endY = e.clientY;
+            selectionBox.style.width = `${endX - startX}px`;
+            selectionBox.style.height = `${endY - startY}px`;
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isSelecting && startX !== undefined && startY !== undefined) {
+            isSelecting = false;
+            actionButtons.style.left = `${(startX + endX) / 2}px`;
+            actionButtons.style.top = `${endY + 10}px`;
+            actionButtons.classList.remove('hidden');
+        }
+    });
+
+    // Guardar la captura en una carpeta
+    saveBtn.addEventListener('click', async () => {
+        const area = {
+            x: Math.min(startX, endX),
+            y: Math.min(startY, endY),
+            width: Math.abs(endX - startX),
+            height: Math.abs(endY - startY),
+        };
+
+        const result = await window.electronAPI.saveScreenshot(area);
 
         if (result.success) {
-            const img = document.getElementById('screenshot-img');
-            img.src = `file://${result.filePath}`;
-            img.style.display = 'block';
+            alert(`Captura guardada en: ${result.filePath}`);
         } else {
             alert(`Error: ${result.error}`);
         }
     });
 
-    // Seleccionar carpeta
-    chooseFolderBtn.addEventListener('click', async () => {
-        const result = await window.electronAPI.chooseFolder();
+    // Copiar la captura al portapapeles
+    copyBtn.addEventListener('click', async () => {
+        const area = {
+            x: Math.min(startX, endX),
+            y: Math.min(startY, endY),
+            width: Math.abs(endX - startX),
+            height: Math.abs(endY - startY),
+        };
+
+        const result = await window.electronAPI.copyScreenshot(area);
 
         if (result.success) {
-            alert(`Carpeta seleccionada: ${result.folder}`);
+            alert('Captura copiada al portapapeles');
         } else {
             alert(`Error: ${result.error}`);
         }
     });
 
-    // Seleccionar área
-    selectAreaBtn.addEventListener('click', async () => {
-        const result = await window.electronAPI.selectArea();
-
-        if (result.success) {
-            const img = document.getElementById('screenshot-img');
-            img.src = `file://${result.filePath}`;
-            img.style.display = 'block';
-        } else {
-            alert(`Error: ${result.error}`);
-        }
-    });
+    // Iniciar la selección al cargar la ventana
+    startSelection();
 });

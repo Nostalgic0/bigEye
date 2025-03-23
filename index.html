@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Captura de Pantalla</title>
-    <style>
-        #screenshot-img { display: none; }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button id="capture-btn">Capturar Pantalla</button>
-    <button id="choose-folder-btn">Elegir Carpeta</button>
-    <button id="select-area-btn">Seleccionar Área</button>
-    <img id="screenshot-img">
+    <div id="overlay"></div>
+    <div id="selection-box"></div>
+    <div id="action-buttons" class="hidden">
+        <button id="save-btn">Guardar en Carpeta</button>
+        <button id="copy-btn">Copiar al Portapapeles</button>
+    </div>
     <script src="renderer.js"></script>
 </body>
 </html>

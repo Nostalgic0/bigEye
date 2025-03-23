@@ -1,12 +1,18 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, dialog, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, dialog, clipboard, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-let screenshotsDir = path.join(__dirname, 'screenshots'); // Carpeta predeterminada
+let screenshotsDir = path.join(__dirname, 'screenshots');
 if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
 
+let mainWindow;
+let tray = null;
+
 function createWindow() {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        show: false, // No mostrar la ventana al inicio
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -17,82 +23,38 @@ function createWindow() {
     mainWindow.loadFile('index.html');
 }
 
-// Manejar la solicitud de captura de pantalla
-ipcMain.handle('request-screenshot', async () => {
-    try {
-        const sources = await desktopCapturer.getSources({
-            types: ['screen'],
-            thumbnailSize: { width: 1920, height: 1080 },
-        });
+// Crear el ícono en la bandeja del sistema
+function createTray() {
+    const iconPath = path.join(__dirname, 'assets', 'icon.png'); // Ruta al ícono
+    const trayIcon = nativeImage.createFromPath(iconPath);
 
-        if (sources.length === 0) throw new Error("No se encontraron pantallas");
-
-        const screenshot = sources[0].thumbnail.toDataURL();
-        const buffer = Buffer.from(screenshot.split(',')[1], 'base64');
-
-        // Guardar la imagen en la carpeta seleccionada
-        const timestamp = new Date().toISOString().replace(/[:.-]/g, '');
-        const filePath = path.join(screenshotsDir, `screenshot-${timestamp}.png`);
-        fs.writeFileSync(filePath, buffer);
-
-        return { success: true, filePath };
-
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-});
-
-// Manejar la selección de carpeta
-ipcMain.handle('choose-folder', async () => {
-    try {
-        const result = await dialog.showOpenDialog({
-            properties: ['openDirectory'], // Solo permite seleccionar carpetas
-        });
-
-        if (!result.canceled && result.filePaths.length > 0) {
-            screenshotsDir = result.filePaths[0]; // Actualizar la carpeta de destino
-            return { success: true, folder: screenshotsDir };
-        } else {
-            return { success: false, error: "No se seleccionó ninguna carpeta" };
+    tray = new Tray(trayIcon);
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Capturar Área',
+            click: () => {
+                if (!mainWindow) {
+                    createWindow();
+                }
+                mainWindow.setFullScreen(true);
+                mainWindow.show();
+            }
+        },
+        {
+            label: 'Salir',
+            click: () => {
+                app.quit();
+            }
         }
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-});
+    ]);
 
-// Manejar la selección del área
-ipcMain.handle('select-area', async () => {
+    tray.setToolTip('Captura de Pantalla');
+    tray.setContextMenu(contextMenu);
+}
+
+// Guardar la captura en una carpeta
+ipcMain.handle('save-screenshot', async (event, area) => {
     try {
-        const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-
-        // Crear una ventana transparente para seleccionar el área
-        const areaWindow = new BrowserWindow({
-            width,
-            height,
-            transparent: true,
-            frame: false,
-            alwaysOnTop: true,
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false,
-            },
-        });
-
-        areaWindow.loadFile('area-selector.html');
-
-        // Esperar a que el usuario seleccione el área
-        const area = await new Promise((resolve) => {
-            areaWindow.webContents.on('did-finish-load', () => {
-                areaWindow.webContents.send('request-area-selection');
-            });
-
-            ipcMain.once('area-selected', (event, area) => {
-                areaWindow.close();
-                resolve(area);
-            });
-        });
-
-        // Capturar el área seleccionada
         const sources = await desktopCapturer.getSources({
             types: ['screen'],
             thumbnailSize: { width: 1920, height: 1080 },
@@ -103,16 +65,43 @@ ipcMain.handle('select-area', async () => {
         const screenshot = sources[0].thumbnail.crop(area);
         const buffer = Buffer.from(screenshot.toPNG());
 
-        // Guardar la imagen en la carpeta seleccionada
         const timestamp = new Date().toISOString().replace(/[:.-]/g, '');
         const filePath = path.join(screenshotsDir, `screenshot-${timestamp}.png`);
         fs.writeFileSync(filePath, buffer);
 
         return { success: true, filePath };
-
     } catch (error) {
         return { success: false, error: error.message };
     }
 });
 
-app.whenReady().then(createWindow);
+// Copiar la captura al portapapeles
+ipcMain.handle('copy-screenshot', async (event, area) => {
+    try {
+        const sources = await desktopCapturer.getSources({
+            types: ['screen'],
+            thumbnailSize: { width: 1920, height: 1080 },
+        });
+
+        if (sources.length === 0) throw new Error("No se encontraron pantallas");
+
+        const screenshot = sources[0].thumbnail.crop(area);
+        const buffer = Buffer.from(screenshot.toPNG());
+
+        clipboard.writeImage(screenshot);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+app.whenReady().then(() => {
+    createTray();
+    createWindow();
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        mainWindow = null;
+    }
+});

@@ -1,19 +1,38 @@
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin-top: 50px;
+    margin: 0;
+    overflow: hidden;
 }
 
-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    filter: saturate(0);
+    pointer-events: none;
 }
 
-#message {
-    margin-top: 20px;
-    font-size: 14px;
+#selection-box {
+    position: absolute;
+    border: 2px dashed red;
+    background: rgba(255, 255, 255, 0.1);
+    display: none;
 }
-#screenshot-img {
+
+#action-buttons {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.hidden {
     display: none;
 }
