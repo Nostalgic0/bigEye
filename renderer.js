@@ -7,13 +7,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let startX, startY, endX, endY;
     let isSelecting = false;
-
+    
+    actionButtons.style.display = 'none';
     // Iniciar la selección de área
     const startSelection = () => {
         isSelecting = true;
         selectionBox.style.display = 'block';
-        actionButtons.classList.add('hidden');
+        overlay.style.display = 'block';
+        //actionButtons.classList.add('hidden');
+        actionButtons.style.display = 'none'; 
+        // Reiniciar las variables de posición
+        startX = undefined;
+        startY = undefined;
+        endX = undefined;
+        endY = undefined;
+        
+        // Restablecer el tamaño y posición del selectionBox
+        selectionBox.style.width = '0';
+        selectionBox.style.height = '0';
+        selectionBox.style.left = '0';
+        selectionBox.style.top = '0';
     };
+
+    // Escuchar evento de reinicio desde el proceso principal
+    window.electronAPI.onRestartCapture(() => {
+        startSelection();
+    });
 
     // Manejar la selección del área
     document.addEventListener('mousedown', (e) => {
@@ -39,9 +58,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mouseup', () => {
         if (isSelecting && startX !== undefined && startY !== undefined) {
             isSelecting = false;
-            actionButtons.style.left = `${(startX + endX) / 2}px`;
-            actionButtons.style.top = `${endY + 10}px`;
-            actionButtons.classList.remove('hidden');
+            overlay.style.display = 'none';
+
+            const selectionWidth = Math.abs(endX - startX);
+            const centerX = Math.min(startX, endX) + (selectionWidth / 2);
+            
+            actionButtons.style.left = `${centerX}px`;
+            actionButtons.style.top = `${Math.max(startY, endY) + 10}px`;
+            actionButtons.style.display = 'flex';
+            actionButtons.style.transform = 'translateX(-50%)';
         }
     });
 
@@ -58,8 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (result.success) {
             alert(`Captura guardada en: ${result.filePath}`);
+            window.electronAPI.hideWindow();
         } else {
             alert(`Error: ${result.error}`);
+            window.electronAPI.hideWindow();
         }
     });
 
@@ -76,8 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (result.success) {
             alert('Captura copiada al portapapeles');
+            window.electronAPI.hideWindow();
         } else {
             alert(`Error: ${result.error}`);
+            window.electronAPI.hideWindow();
         }
     });
 

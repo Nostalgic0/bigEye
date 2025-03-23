@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, dialog, clipboard, Tray, Menu, nativeImage, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, dialog, clipboard, Tray, Menu, nativeImage, globalShortcut, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { create } = require('domain');
 
 let screenshotsDir = path.join(__dirname, 'screenshots');
 if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
@@ -9,9 +10,11 @@ let mainWindow;
 let tray = null;
 
 function createWindow() {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: width,
+        height: height,
         show: false, // No mostrar la ventana al inicio
 	frame: false,
 	transparent: true,
@@ -25,13 +28,16 @@ function createWindow() {
 
     mainWindow.loadFile('index.html');
     
-    // mainWindow.setFullScreen(true);
-    globalShortcut.register('PrintScreen', () => {
-        if (mainWindow.isVisible()) {
-            mainWindow.hide(); // Ocultar la ventana si está visible
-        } else {
-            mainWindow.show(); // Mostrar la ventana si está oculta
+    function restartCapture() {
+        if (!mainWindow.isVisible()) {
+            mainWindow.show();
         }
+        mainWindow.webContents.send('restart-capture');
+    }
+    
+    // Registrar la tecla PrintScreen
+    globalShortcut.register('PrintScreen', () => {
+        restartCapture();
     });
 }
 
@@ -48,8 +54,8 @@ function createTray() {
                 if (!mainWindow) {
                     createWindow();
                 }
-                mainWindow.setFullScreen(true);
                 mainWindow.show();
+                mainWindow.webContents.send('restart-capture');
             }
         },
         {
@@ -120,4 +126,10 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
     // Liberar el atajo global al salir
     globalShortcut.unregisterAll();
+});
+
+ipcMain.on('hide-window', () => {
+    if (mainWindow) {
+        mainWindow.hide();
+    }
 });
