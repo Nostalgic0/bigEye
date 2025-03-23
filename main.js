@@ -25,7 +25,7 @@ function createWindow() {
 
     mainWindow.loadFile('index.html');
     
-    mainWindow.setFullScreen(true);
+    // mainWindow.setFullScreen(true);
     globalShortcut.register('PrintScreen', () => {
         if (mainWindow.isVisible()) {
             mainWindow.hide(); // Ocultar la ventana si está visible
@@ -112,11 +112,11 @@ app.whenReady().then(() => {
     createWindow();
 });
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        mainWindow = null;
-    }
-});
+// app.on('window-all-closed', () => {
+//     if (process.platform !== 'darwin') {
+//         mainWindow = null;
+//     }
+// });
 app.on('will-quit', () => {
     // Liberar el atajo global al salir
     globalShortcut.unregisterAll();
