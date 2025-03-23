@@ -26,7 +26,13 @@ function createWindow() {
     mainWindow.loadFile('index.html');
     
     mainWindow.setFullScreen(true);
-    mainWindow.show();
+    globalShortcut.register('PrintScreen', () => {
+        if (mainWindow.isVisible()) {
+            mainWindow.hide(); // Ocultar la ventana si está visible
+        } else {
+            mainWindow.show(); // Mostrar la ventana si está oculta
+        }
+    });
 }
 
 // Crear el ícono en la bandeja del sistema
@@ -110,4 +116,8 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         mainWindow = null;
     }
+});
+app.on('will-quit', () => {
+    // Liberar el atajo global al salir
+    globalShortcut.unregisterAll();
 });
