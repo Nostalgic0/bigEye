@@ -13,6 +13,9 @@ function createWindow() {
         width: 800,
         height: 600,
         show: false, // No mostrar la ventana al inicio
+	frame: false,
+	transparent: true,
+	alwaysOnTop: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -21,6 +24,9 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
+    
+    mainWindow.setFullScreen(true);
+    mainWindow.show();
 }
 
 // Crear el ícono en la bandeja del sistema
